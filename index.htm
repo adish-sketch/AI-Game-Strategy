@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adish — AI Game Strategy Advisor</title>
+<meta name="description" content="Adish reads your position and hands back the line that wins — for chess, poker, MOBAs, board games, and negotiation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10140F;
+    --bg-deep: #0B0E09;
+    --panel: #1B2118;
+    --panel-2: #212A1B;
+    --line: #333d2c;
+    --brass: #E8B34D;
+    --brass-dim: #8a6c2d;
+    --sage: #7C9473;
+    --parchment: #EDE7D9;
+    --muted: #96A08A;
+    --rust: #C1502E;
+    --radius: 4px;
+    --serif: 'Fraunces', serif;
+    --sans: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--parchment);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color: inherit; }
+  ::selection{ background: var(--brass); color: var(--bg-deep); }
+
+  :focus-visible{
+    outline: 2px solid var(--brass);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  h1,h2,h3{
+    font-family: var(--serif);
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width: 18px; height: 1px;
+    background: var(--brass);
+    display: inline-block;
+  }
+
+  /* ---------- NAV ---------- */
+  header{
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(16,20,15,0.86);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  .logo{
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--parchment);
+  }
+  .logo .mark{
+    width: 14px; height: 14px;
+    background: var(--brass);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    flex-shrink: 0;
+  }
+  .nav-links{
+    display: flex;
+    gap: 34px;
+    list-style: none;
+    margin: 0; padding: 0;
+    font-size: 14px;
+  }
+  .nav-links a{
+    text-decoration: none;
+    color: var(--muted);
+    transition: color .2s ease;
+  }
+  .nav-links a:hover{ color: var(--parchment); }
+  .nav-cta{
+    font-family: var(--mono);
+    font-size: 13px;
+    text-decoration: none;
+    color: var(--bg-deep);
+    background: var(--brass);
+    padding: 9px 16px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .nav-cta:hover{ box-shadow: 0 0 0 1px var(--brass), 0 6px 18px rgba(232,179,77,0.25); }
+  .nav-toggle{ display:none; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding: 96px 0 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero .wrap{
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .hero h1{
+    font-size: clamp(38px, 5vw, 60px);
+    line-height: 1.05;
+    margin: 20px 0 22px;
+  }
+  .hero h1 em{
+    font-style: italic;
+    color: var(--brass);
+  }
+  .hero p.lead{
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 46ch;
+    margin-bottom: 30px;
+  }
+  .hero-ctas{ display:flex; gap:16px; flex-wrap:wrap; }
+  .btn{
+    font-family: var(--mono);
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 13px 22px;
+    border-radius: var(--radius);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .btn-primary{
+    background: var(--brass);
+    color: var(--bg-deep);
+  }
+  .btn-primary:hover{ box-shadow: 0 8px 22px rgba(232,179,77,0.25); transform: translateY(-1px); }
+  .btn-ghost{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--parchment);
+  }
+  .btn-ghost:hover{ border-color: var(--sage); color: var(--sage); }
+
+  /* Signature: decision matrix hex grid */
+  .matrix-wrap{
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 380px;
+  }
+  .hexboard{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .hexrow{
+    display: flex;
+    gap: 6px;
+  }
+  .hexrow.offset{ margin-left: 34px; }
+  .hex{
+    width: 62px;
+    height: 54px;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    position: relative;
+    transition: background .6s ease;
+  }
+  .hex span{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity .6s ease;
+  }
+  .hex.lit span{ opacity: 1; }
+  .matrix-caption{
+    position: absolute;
+    bottom: -34px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .hex{ transition: none; }
+  }
+
+  section{ padding: 90px 0; border-top: 1px solid var(--line); }
+
+  .section-head{
+    max-width: 640px;
+    margin-bottom: 52px;
+  }
+  .section-head h2{
+    font-size: clamp(28px, 3.4vw, 38px);
+    margin-top: 16px;
+  }
+  .section-head p{ color: var(--muted); margin-top: 14px; font-size: 15.5px; }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .step{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 30px 26px;
+    position: relative;
+  }
+  .step .num{
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--brass);
+    margin-bottom: 18px;
+    display: block;
+  }
+  .step h3{ font-size: 19px; margin-bottom: 10px; font-weight: 600; }
+  .step p{ color: var(--muted); font-size: 14.5px; margin: 0; }
+
+  /* ---------- ADVISOR ---------- */
+  .advisor-grid{
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 30px;
+  }
+  label{
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .field{ margin-bottom: 22px; }
+  select, textarea{
+    width: 100%;
+    background: var(--bg-deep);
+    border: 1px solid var(--line);
+    color: var(--parchment);
+    font-family: var(--sans);
+    font-size: 14.5px;
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    resize: vertical;
+  }
+  textarea{ min-height: 120px; }
+  select:focus, textarea:focus{ border-color: var(--brass); }
+  .examples{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .example-chip{
+    font-family: var(--mono);
+    font-size: 11.5px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 7px 11px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .example-chip:hover{ border-color: var(--sage); color: var(--sage); }
+
+  .output-panel{
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+  }
+  .output-empty{
+    margin: auto;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 32ch;
+  }
+  .output-empty .glyph{
+    width: 34px; height: 30px;
+    margin: 0 auto 18px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  }
+  .output-content{ display: none; }
+  .output-content.visible{
+    display: block;
+    animation: fadein .5s ease;
+  }
+  @keyframes fadein{ from{ opacity:0; transform: translateY(6px); } to{ opacity:1; transform: translateY(0); } }
+  .out-block + .out-block{ margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .out-label{
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--brass);
+    margin-bottom: 8px;
+  }
+  .out-text{ font-size: 15px; color: var(--parchment); }
+  .risk-meter{
+    height: 8px;
+    background: var(--panel-2);
+    border-radius: 20px;
+    overflow: hidden;
+    margin-top: 10px;
+    border: 1px solid var(--line);
+  }
+  .risk-fill{
+    height: 100%;
+    background: linear-gradient(90deg, var(--sage), var(--brass));
+    width: 0%;
+    transition: width .7s ease;
+  }
+  .risk-label{
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .out-list{ margin: 0; padding-left: 18px; color: var(--parchment); font-size: 14.5px; }
+  .out-list li{ margin-bottom: 8px; }
+  .out-list li::marker{ color: var(--brass); }
+
+  /* ---------- GAMES ---------- */
+  .games-grid{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
+  }
+  .game-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    transition: border-color .2s ease, transform .2s ease;
+  }
+  .game-card:hover{ border-color: var(--sage); transform: translateY(-3px); }
+  .game-card .icon{ margin-bottom: 16px; color: var(--brass); }
+  .game-card h3{ font-size: 16.5px; margin-bottom: 8px; font-weight: 600; }
+  .game-card p{ color: var(--muted); font-size: 13.5px; margin: 0; }
+
+  /* ---------- FEATURES ---------- */
+  .features-grid{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .feature{
+    background: var(--panel);
+    padding: 32px;
+  }
+  .feature .icon{ color: var(--sage); margin-bottom: 18px; }
+  .feature h3{ font-size: 18px; margin-bottom: 10px; font-weight: 600; }
+  .feature p{ color: var(--muted); font-size: 14.5px; margin: 0; }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top: 1px solid var(--line);
+    padding: 50px 0 36px;
+  }
+  .footer-top{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-bottom: 30px;
+  }
+  .footer-note{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 50ch;
+    line-height: 1.7;
+  }
+  .footer-links{
+    display: flex;
+    gap: 26px;
+    list-style: none;
+    padding: 0; margin: 0;
+    font-size: 13.5px;
+  }
+  .footer-links a{ text-decoration: none; color: var(--muted); }
+  .footer-links a:hover{ color: var(--parchment); }
+  .footer-bottom{
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+  }
+
+  .reveal{ opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.visible{ opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ opacity:1; transform:none; transition:none; }
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 980px){
+    .hero .wrap{ grid-template-columns: 1fr; }
+    .matrix-wrap{ order: -1; min-height: 280px; }
+    .advisor-grid{ grid-template-columns: 1fr; }
+    .games-grid{ grid-template-columns: repeat(2, 1fr); }
+    .features-grid{ grid-template-columns: 1fr; }
+    .steps{ grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px){
+    .wrap{ padding: 0 20px; }
+    nav{ padding: 16px 20px; }
+    .nav-links{ display: none; }
+    .games-grid{ grid-template-columns: 1fr 1fr; }
+    .hex{ width: 44px; height: 38px; }
+    .hexrow.offset{ margin-left: 24px; }
+  }
+</style>
+</head>
+<body>
+<script>
+  window.wxOConfiguration = {
+    orchestrationID: "b5f22b2741dd4a9186e94435cd471717_92fc80db-b32a-4f15-b361-fbe6170f9eba",
+    hostURL: "https://au-syd.watson-orchestrate.cloud.ibm.com",
+    rootElementID: "root",
+    deploymentPlatform: "ibmcloud",
+    crn: "crn:v1:bluemix:public:watsonx-orchestrate:au-syd:a/b5f22b2741dd4a9186e94435cd471717:92fc80db-b32a-4f15-b361-fbe6170f9eba::",
+    chatOptions: {
+        agentId: "e1583524-cf84-407e-872e-56c96eb1a1d8", 
+    }
+  };
+  setTimeout(function () {
+    const script = document.createElement('script');
+    script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
+    script.addEventListener('load', function () {
+        wxoLoader.init();
+    });
+    document.head.appendChild(script);
+  }, 0);                     
+</script>
+
+<header>
+  <nav>
+    <a href="#top" class="logo"><span class="mark"></span>ADISH</a>
+    <ul class="nav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#advisor">Advisor</a></li>
+      <li><a href="#games">Games</a></li>
+      <li><a href="#features">Features</a></li>
+    </ul>
+    <a href="#advisor" class="nav-cta">Get advice</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero" style="border-top:none; padding-top:96px;">
+    <div class="wrap">
+      <div>
+        <div class="eyebrow">AI Game Strategy Advisor</div>
+        <h1>Every position<br>has <em>an answer.</em></h1>
+        <p class="lead">Adish reads your board, your hand, your lane — and hands back the line that wins. Describe the situation, get a ranked strategy, no account required.</p>
+        <div class="hero-ctas">
+          <a href="#advisor" class="btn btn-primary">Analyze my position →</a>
+          <a href="#how" class="btn btn-ghost">See how it thinks</a>
+        </div>
+      </div>
+      <div class="matrix-wrap">
+        <div class="hexboard" id="hexboard"></div>
+        <div class="matrix-caption">evaluating branches in real time</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Process</div>
+        <h2>Three moves to a plan</h2>
+        <p>No setup, no data left behind. Adish runs the whole evaluation in your browser the moment you describe your position.</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <span class="num">01</span>
+          <h3>Describe your position</h3>
+          <p>Pick your game and lay out the situation in plain language — stack sizes, board state, score, whatever you've got.</p>
+        </div>
+        <div class="step reveal">
+          <span class="num">02</span>
+          <h3>Adish weighs the branches</h3>
+          <p>It reads for who's ahead, how aggressive the moment calls for, and what phase of the game you're in.</p>
+        </div>
+        <div class="step reveal">
+          <span class="num">03</span>
+          <h3>Get a ranked line</h3>
+          <p>You get a recommended approach, a risk read, and the two or three things worth watching before you commit.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADVISOR -->
+  <section id="advisor">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">The Advisor</div>
+        <h2>Lay out your position</h2>
+        <p>Choose your game, describe where things stand, and Adish will read it back with a plan.</p>
+      </div>
+
+      <div class="advisor-grid reveal">
+        <div class="panel">
+          <div class="field">
+            <label for="game-select">Game</label>
+            <select id="game-select">
+              <option value="chess">Chess</option>
+              <option value="poker">Poker</option>
+              <option value="moba">MOBA / RTS</option>
+              <option value="board">Board game</option>
+              <option value="negotiation">Negotiation</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="situation">Your position</label>
+            <textarea id="situation" placeholder="e.g. I'm down a pawn but my king is much safer, we just reached the middlegame..."></textarea>
+          </div>
+          <div class="examples" id="examples"></div>
+          <a class="btn btn-primary" id="analyze-btn" style="width:100%; justify-content:center;">Calculate strategy</a>
+        </div>
+
+        <div class="panel output-panel">
+          <div class="output-empty" id="output-empty">
+            <div class="glyph"></div>
+            Feed Adish a position — the board, the hand, the lane — and the read appears here.
+          </div>
+          <div class="output-content" id="output-content">
+            <div class="out-block">
+              <div class="out-label">Position read</div>
+              <div class="out-text" id="out-assessment"></div>
+            </div>
+            <div class="out-block">
+              <div class="out-label">Recommended line</div>
+              <div class="out-text" id="out-recommendation"></div>
+            </div>
+            <div class="out-block">
+              <div class="out-label">Risk profile</div>
+              <div class="risk-meter"><div class="risk-fill" id="risk-fill"></div></div>
+              <div class="risk-label" id="risk-label"></div>
+            </div>
+            <div class="out-block">
+              <div class="out-label">Key considerations</div>
+              <ul class="out-list" id="out-considerations"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAMES -->
+  <section id="games">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Coverage</div>
+        <h2>Built for five kinds of conflict</h2>
+        <p>Different games reward different instincts. Adish's advice bank is tuned per domain, not a single generic script.</p>
+      </div>
+      <div class="games-grid">
+        <div class="game-card reveal">
+          <svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l2 4 4 .5-3 3 .8 4.5L12 13l-3.8 2 .8-4.5-3-3 4-.5z"/></svg>
+          <h3>Chess</h3>
+          <p>Opening plans, middlegame imbalances, and endgame technique.</p>
+        </div>
+        <div class="game-card reveal">
+          <svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 10h.01M12 10h.01M16 10h.01M8 14h8"/></svg>
+          <h3>Poker</h3>
+          <p>Position, stack depth, and range-based betting decisions.</p>
+        </div>
+        <div class="game-card reveal">
+          <svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg>
+          <h3>MOBA / RTS</h3>
+          <p>Lane pressure, objective timing, and macro decision-making.</p>
+        </div>
+        <div class="game-card reveal">
+          <svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <h3>Board games</h3>
+          <p>Resource tempo, tableau building, and endgame scoring pushes.</p>
+        </div>
+        <div class="game-card reveal">
+          <svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 12h8M12 8v8"/><circle cx="12" cy="12" r="9"/></svg>
+          <h3>Negotiation</h3>
+          <p>Leverage reads, concession pacing, and BATNA-aware framing.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Under the hood</div>
+        <h2>What the read actually weighs</h2>
+      </div>
+      <div class="features-grid reveal">
+        <div class="feature">
+          <svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17l6-6 4 4 8-8"/></svg>
+          <h3>Position modeling</h3>
+          <p>Reads your description for who's ahead, who's behind, and how far apart the two sides really are.</p>
+        </div>
+        <div class="feature">
+          <svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+          <h3>Risk calibration</h3>
+          <p>Turns your stated aggression and current standing into a single, honest risk read — not just "attack" or "fold."</p>
+        </div>
+        <div class="feature">
+          <svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4l16 16M20 4L4 20"/></svg>
+          <h3>Counter-strategy detection</h3>
+          <p>Flags the phase-specific traps and reversals that tend to catch players at exactly this stage of the game.</p>
+        </div>
+        <div class="feature">
+          <svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12c2-4 5-6 9-6s7 2 9 6c-2 4-5 6-9 6s-7-2-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg>
+          <h3>Domain-tuned voice</h3>
+          <p>Chess advice reads like chess advice. Poker advice reads like poker advice. No one-size-fits-all script.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-top">
+      <a href="#top" class="logo"><span class="mark"></span>ADISH</a>
+      <ul class="footer-links">
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#advisor">Advisor</a></li>
+        <li><a href="#games">Games</a></li>
+        <li><a href="#features">Features</a></li>
+      </ul>
+    </div>
+    <p class="footer-note">Adish's advisor runs entirely in your browser using a rule-based strategy engine — no data leaves your device. Swap in your own model or API for live, board-aware analysis.</p>
+    <div class="footer-bottom">© 2026 Adish. Built for players who'd rather calculate than guess.</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+
+  /* ---------------- Hex board ambient animation ---------------- */
+  const board = document.getElementById('hexboard');
+  const rows = [5,6,5,6,5];
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cells = [];
+
+  rows.forEach((count, i) => {
+    const row = document.createElement('div');
+    row.className = 'hexrow' + (i % 2 === 1 ? ' offset' : '');
+    for(let j=0; j<count; j++){
+      const hex = document.createElement('div');
+      hex.className = 'hex';
+      const label = document.createElement('span');
+      label.textContent = (Math.random() > 0.5 ? '+' : '') + (Math.random()*3 - 1.5).toFixed(1);
+      hex.appendChild(label);
+      row.appendChild(hex);
+      cells.push(hex);
+    }
+    board.appendChild(row);
+  });
+
+  if(!reduceMotion){
+    setInterval(() => {
+      cells.forEach(c => c.classList.remove('lit'));
+      const activeCount = 3 + Math.floor(Math.random()*4);
+      const shuffled = [...cells].sort(() => Math.random() - 0.5).slice(0, activeCount);
+      shuffled.forEach(c => {
+        c.classList.add('lit');
+        c.style.background = Math.random() > 0.5 ? 'rgba(232,179,77,0.18)' : 'rgba(124,148,115,0.22)';
+      });
+    }, 1400);
+  }
+
+  /* ---------------- Scroll reveal ---------------- */
+  const revealEls = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.12 });
+    revealEls.forEach(el => io.observe(el));
+  } else {
+    revealEls.forEach(el => el.classList.add('visible'));
+  }
+
+  /* ---------------- Advisor engine ---------------- */
+  const gameData = {
+    chess: {
+      label: 'Chess',
+      assessment: {
+        ahead: "You're holding the better position. The task now is converting an advantage, not manufacturing a new one.",
+        behind: "You're objectively worse here. The priority is making the position as unpleasant as possible for your opponent to convert.",
+        even: "The position is roughly balanced. Small, accurate decisions will matter more than any single dramatic move."
+      },
+      style: {
+        aggressive: "Favor forcing moves — checks, captures, threats — that keep your opponent reacting instead of planning.",
+        defensive: "Prioritize king safety and piece coordination over material grabs; consolidate before you look for counterplay.",
+        balanced: "Look for the move that improves your worst-placed piece while keeping the position flexible."
+      },
+      phase: {
+        opening: "In the opening, finish development and contest the center before starting any concrete plan.",
+        midgame: "In the middlegame, identify the position's key imbalance — space, structure, or piece activity — and play around it.",
+        endgame: "In the endgame, king activity and passed pawns usually decide things faster than piece count."
+      },
+      considerations: [
+        "Check for any pawn breaks that open lines toward your opponent's king.",
+        "Watch for undefended pieces before committing to a forcing sequence.",
+        "Compare piece activity, not just material, when judging who stands better.",
+        "If you're low on time, simplify into positions you can calculate quickly.",
+        "Re-evaluate the plan every time a pawn structure changes."
+      ]
+    },
+    poker: {
+      label: 'Poker',
+      assessment: {
+        ahead: "You likely have range and equity advantage in this spot. The goal is to extract value without overplaying your hand.",
+        behind: "Your range is probably behind here. Look for cheap ways to realize equity rather than paying to find out.",
+        even: "This is a close, range-versus-range spot. Position and bet sizing will matter more than your specific two cards."
+      },
+      style: {
+        aggressive: "Lean into bet-sizing that puts maximum pressure on your opponent's likely fold-equity threshold.",
+        defensive: "Favor pot control — smaller bets or checks — to keep the pot manageable relative to your hand strength.",
+        balanced: "Mix your actions so your range stays balanced between value and bluffs at this bet size."
+      },
+      phase: {
+        opening: "Early in the hand, focus on range construction — what you'd do with your whole range, not just this hand.",
+        midgame: "On later streets, weigh pot odds and implied odds before committing more chips.",
+        endgame: "Near the bubble or with a short stack, shift toward push/fold thinking over post-flop play."
+      },
+      considerations: [
+        "Reassess your opponent's likely range every time they take an action, not just at showdown.",
+        "Account for stack-to-pot ratio before deciding how committed you are.",
+        "Don't let one recent result change a sound, repeatable decision process.",
+        "Factor position — acting last is worth more than most players give it credit for.",
+        "If the math is close, default to the lower-variance line unless you need to catch up."
+      ]
+    },
+    moba: {
+      label: 'MOBA / RTS',
+      assessment: {
+        ahead: "Your team or lane holds a real lead. The next move should convert that lead into map control, not just more kills.",
+        behind: "You're behind on resources or objectives. Playing for even trades and scaling matters more than forcing fights.",
+        even: "Neither side has a clear edge. Vision and objective timing will likely decide the next big swing."
+      },
+      style: {
+        aggressive: "Look to force fights around objectives while your current power spike is live.",
+        defensive: "Play for space and information — group with teammates and avoid isolated skirmishes.",
+        balanced: "Rotate based on where the map is giving you the best risk-to-reward trade right now."
+      },
+      phase: {
+        opening: "Early game, prioritize resource efficiency — farm, lane assignment, and early vision — over speculative fights.",
+        midgame: "In the midgame, objectives usually matter more than kills; trade map presence for tempo.",
+        endgame: "Late game, a single bad fight can end the match — value information and positioning over aggression."
+      },
+      considerations: [
+        "Track enemy cooldowns and ultimates before initiating anything.",
+        "Value objective control over kill count when the two conflict.",
+        "Don't split resources across the map when you're already behind.",
+        "Reassess win conditions after every major objective, not just after fights.",
+        "If ahead, play to end the game rather than farming for a bigger lead."
+      ]
+    },
+    board: {
+      label: 'Board game',
+      assessment: {
+        ahead: "Your engine or score is currently the strongest at the table. Expect other players to start targeting you.",
+        behind: "You're trailing on the current scoring track. Look for a different path to points than the leader is taking.",
+        even: "Scores are close enough that efficient, low-variance turns will likely decide the winner."
+      },
+      style: {
+        aggressive: "Take the higher-variance action that could open a bigger lead, even if it risks a weaker turn.",
+        defensive: "Protect your existing engine or position rather than chasing a marginal extra point this turn.",
+        balanced: "Take the action with the best point-per-resource ratio available this turn."
+      },
+      phase: {
+        opening: "Early on, prioritize flexible resources and engine pieces over immediate points.",
+        midgame: "In the middle of the game, start converting flexibility into a repeatable scoring pattern.",
+        endgame: "Near the end, count exact remaining turns and optimize for guaranteed points over long-term engine value."
+      },
+      considerations: [
+        "Recount how many turns are actually left before committing to a long-term plan.",
+        "Watch what resources opponents are collecting — it signals their intended path to points.",
+        "Don't over-invest in an engine that won't pay off before the game ends.",
+        "Look for actions that deny opponents as a secondary benefit, not the primary reason to take them.",
+        "Re-check the scoring track — the leader on turn count isn't always the leader at game end."
+      ]
+    },
+    negotiation: {
+      label: 'Negotiation',
+      assessment: {
+        ahead: "You currently hold more leverage in this conversation. Use it to shape terms, not just to extract a bigger number.",
+        behind: "The other side has more leverage right now. Your priority is improving your alternatives before you concede further.",
+        even: "Leverage is fairly balanced. The outcome will likely come down to who frames the anchor and pace better."
+      },
+      style: {
+        aggressive: "Anchor assertively and let silence do some of the work after you state your position.",
+        defensive: "Slow the pace, ask clarifying questions, and avoid being the first to name a number.",
+        balanced: "Trade concessions incrementally, and make sure each one is matched by something in return."
+      },
+      phase: {
+        opening: "Early in the conversation, focus on understanding their real constraints before making any offer.",
+        midgame: "Once offers are on the table, trade concessions in small, matched steps rather than large jumps.",
+        endgame: "As you approach a close, confirm every term explicitly — ambiguity here tends to resurface later."
+      },
+      considerations: [
+        "Know your BATNA (best alternative) before the conversation, not during it.",
+        "Separate the person from the position — attack the problem, not the counterpart.",
+        "Let the other side name the first number when you're unsure of the range.",
+        "Write down what was actually agreed before the conversation ends.",
+        "Watch for artificial urgency — it's often a pressure tactic, not a real constraint."
+      ]
+    }
+  };
+
+  const examples = {
+    chess: "I'm down a pawn but my king is much safer, and we just reached the middlegame.",
+    poker: "I'm on the button with a strong hand and a big stack behind me limped in preflop.",
+    moba: "We're even on kills but the enemy team controls the map's key objectives right now.",
+    board: "I'm trailing on points but have a strong engine that hasn't paid off yet.",
+    negotiation: "We're mid-negotiation on a contract and they just floated a tight deadline."
+  };
+
+  const gameSelect = document.getElementById('game-select');
+  const situationInput = document.getElementById('situation');
+  const examplesWrap = document.getElementById('examples');
+  const analyzeBtn = document.getElementById('analyze-btn');
+  const outputEmpty = document.getElementById('output-empty');
+  const outputContent = document.getElementById('output-content');
+
+  function renderExampleChip(){
+    examplesWrap.innerHTML = '';
+    const chip = document.createElement('span');
+    chip.className = 'example-chip';
+    chip.textContent = 'Try an example';
+    chip.addEventListener('click', () => {
+      situationInput.value = examples[gameSelect.value];
+      situationInput.focus();
+    });
+    examplesWrap.appendChild(chip);
+  }
+  renderExampleChip();
+  gameSelect.addEventListener('change', renderExampleChip);
+
+  function detectPosition(text){
+    if(/\b(behind|losing|down|trailing|worse|weak(er)?|short stack)\b/.test(text)) return 'behind';
+    if(/\b(ahead|winning|up|leading|strong(er)?|big stack|better)\b/.test(text)) return 'ahead';
+    return 'even';
+  }
+  function detectStyle(text){
+    if(/\b(aggressive|all[- ]?in|attack|push|risk|force|bluff)\b/.test(text)) return 'aggressive';
+    if(/\b(safe|defensive|careful|conservative|fold|protect|slow)\b/.test(text)) return 'defensive';
+    return 'balanced';
+  }
+  function detectPhase(text){
+    if(/\b(open(ing)?|early|start(ing)?|preflop|first turn)\b/.test(text)) return 'opening';
+    if(/\b(end ?game|late|final|closing|bubble|last turn)\b/.test(text)) return 'endgame';
+    return 'midgame';
+  }
+
+  function pickThree(arr){
+    return [...arr].sort(() => Math.random() - 0.5).slice(0, 3);
+  }
+
+  function analyze(){
+    const gameKey = gameSelect.value;
+    const text = situationInput.value.trim().toLowerCase();
+    const data = gameData[gameKey];
+
+    const position = text ? detectPosition(text) : 'even';
+    const style = text ? detectStyle(text) : 'balanced';
+    const phase = text ? detectPhase(text) : 'midgame';
+
+    let risk = { defensive: 25, balanced: 50, aggressive: 78 }[style];
+    if(position === 'behind') risk += 12;
+    if(position === 'ahead') risk -= 10;
+    risk = Math.max(6, Math.min(94, risk));
+
+    const riskTier = risk < 35 ? 'Conservative' : risk < 65 ? 'Balanced' : 'Aggressive';
+
+    document.getElementById('out-assessment').textContent = data.assessment[position];
+    document.getElementById('out-recommendation').textContent = data.phase[phase] + ' ' + data.style[style];
+    document.getElementById('risk-fill').style.width = risk + '%';
+    document.getElementById('risk-label').textContent = riskTier + ' · ' + risk + '/100 risk read';
+
+    const list = document.getElementById('out-considerations');
+    list.innerHTML = '';
+    pickThree(data.considerations).forEach(tip => {
+      const li = document.createElement('li');
+      li.textContent = tip;
+      list.appendChild(li);
+    });
+
+    outputEmpty.style.display = 'none';
+    outputContent.classList.remove('visible');
+    void outputContent.offsetWidth;
+    outputContent.classList.add('visible');
+  }
+
+  analyzeBtn.addEventListener('click', analyze);
+  situationInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) analyze();
+  });
+
+})();
+</script>
+
+</body>
+</html>
